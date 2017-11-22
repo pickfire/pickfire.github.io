@@ -1,0 +1,4 @@
+User-Agent: *
+Disallow: /spying/
+
+Sitemap: https://pickfire.tk/sitemap.xml
