@@ -1,0 +1,124 @@
+<!doctype html><html lang="en"><title>Setting up this site for free</title><meta charset="utf-8"><meta name="description" content="Pickfire's happy website by itself"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/pub/style.css"><link href=/posts/learn/atom.xml type=application/atom+xml rel=alternate title="Pickfire learn ATOM Feed"><header><a id="fire" href="/">Site </a><span><strong>Posts</strong><span id=info> - <em>Embrace the Unknown</em></span></span></header><menu><span class="left"><a href=/about/>About</a><a href=/links/>Links</a><a href=/posts/ id='here'>Posts</a></span><span class="right"><a id="tor" href="http://pickfireywcq2wf2.onion/">Tor</a></span></menu><nav><ul><li><a href="/posts/craft/">Craft/</a></li><li><a href="/posts/learn/" class=site>Learn/</a><ul><li><a href="/posts/learn/mail.html">Mail</a></li><li><a href="/posts/learn/privacy.html">Privacy</a></li><li><a href="/posts/learn/site.html" class=site>Site</a></li><li><a href="/posts/learn/speed.html">Speed</a></li></ul></li><li><a href="/posts/linux/">Linux/</a></li></ul></nav><main><h1>Setting up this site for free</h1><p>In the process of creating this site with an abnormal way (using ddns), most
+people had told me to give up and go buy a domain, I refuse. And now, here am
+I.</p><blockquote><p>First they ignore you, then they laugh at you, then they fight you, then you
+win.  -- Mahatma Gandhi</p></blockquote><p><strong>Warning: Always believe in yourselves and never give up during the process.</strong></p><blockquote><p>Patience and diligence, like faith, remove mountains.  -- Willian Penn</p></blockquote><h1>HTTP Setup</h1><h2>Build website</h2><p>Clone the [website source][src] in <code>/srv/www/pickfire.tk/</code>.
+Run <code>make</code> with the following <code>config.sh</code>.</p><pre><code>PROT=http://
+TARG=/srv/http/pickfire.tk
+HOST=pickfire.tk
+#TARG=/srv/http/pickfireywcq2wf2.onion  # build with this as well for tor
+#HOST=pickfireywcq2wf2.onion
+</code></pre><h2>Setup httpd</h2><p>Install <code>h2o</code>.</p><p>Base website with virtual host and tor support.</p><pre><code>hosts:
+  &quot;pickfire.tk:80&quot;: &amp;www
+    listen: 80
+    paths: &amp;www_paths
+      /:
+        file.dir: /srv/http/pickfire.tk
+        file.send-compressed: ON
+        access-log: /var/log/h2o/www.log
+      /tor:
+        fastcgi.spawn: &quot;exec /srv/tor/check/check.cgi&quot;
+        access-log: /var/log/h2o/tor.log
+      /status: &amp;default_status
+        mruby.handler: |
+          acl {
+            allow { addr == &quot;192.168.1.100&quot; }
+            respond(404, {}, [&quot;not found&quot;])
+          }
+        status: ON
+        access-log: /var/log/h2o/status.log
+  &quot;pickfireywcq2wf2.onion:80&quot;:
+    &lt;&lt;: *www
+    paths:
+      &lt;&lt;: *www_paths
+      /:
+        file.dir: /srv/http/pickfireywcq2wf2.onion
+        file.send-compressed: ON
+  &quot;pickfire.tk:443&quot;:
+    listen:
+      port: 443
+      ssl: &amp;default_ssl
+        minimum-version: TLSv1.2
+        cipher-suite: ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
+        certificate-file: /srv/www/acme.sh/pickfire.tk/fullchain.cer
+        key-file: /srv/www/acme.sh/pickfire.tk/pickfire.tk.key
+    header.set: &quot;Strict-Transport-Security: max-age=15768000; includeSubDomains&quot;
+    paths: *www_paths
+</code></pre><p>Use <a href="http://acme.sh">acme.sh</a> as Let's Encrypt client (minimal client for posix shell).</p><pre><code>git clone https://github.com/Neilpang/acme.sh.git
+cd acme.sh
+./acme.sh --install --home /srv/www/acme.sh
+</code></pre><p>Setup certs:</p><pre><code>. /srv/www/acme.sh/acme.sh.env
+acme.sh --issue -d pickfire.tk -d www.pickfire.tk -w /srv/http/pickfire.tk
+</code></pre><p>For cgit (this took me a while to figure it out):</p><pre><code>&quot;git.pickfire.tk:80&quot;: &amp;git
+  listen: 80
+  paths: &amp;git_paths
+    /cgit.css:
+      file.file: /srv/git/cgit.css
+      file.send-compressed: ON
+    /favicon.ico: &amp;default_ico
+      file.file: /srv/www/pickfire.tk/favicon.ico
+      file.send-compressed: ON
+    /:
+      fastcgi.spawn: &quot;exec $H2O_ROOT/share/h2o/fastcgi-cgi&quot;
+      setenv:
+        SCRIPT_FILENAME: /srv/git/cgit.cgi
+      compress: ON
+      access-log: /var/log/h2o/git.log
+    /status: *default_status
+</code></pre><p>For files with auto index:</p><pre><code>&quot;dl.pickfire.tk:80&quot;: &amp;dl
+  listen: 80
+  paths: &amp;dl_paths
+    /:
+      file.dir: &quot;/srv/ftp&quot;
+      file.dirlisting: ON
+      compress: ON
+      access-log: /var/log/h2o/dl.log
+    /favicon.ico: *default_ico
+    /status: *default_status
+</code></pre><h2>Setup cgit</h2><p>Install <code>cgit</code>, <code>fcgiwrap</code> (now used the one in <code>h2o</code>).</p><h2>Setup git daemon</h2><p>Install <code>git-daemon</code>.</p><ul><li>Run with <code>--base-path /srv/git</code> for git directory.</li><li>Run without <code>--export-all</code> to prevent auto-export.</li></ul><h2>Bare repository</h2><p>Do <code>git clone --bare</code> for the files.</p><p>Owner of git repository is appended to <code>repo/config</code>.</p><pre><code>[gitweb]
+	owner = Ivan Tham &lt;pickfire@riseup.net&gt;
+</code></pre><p>Project description in <code>repo/description</code>.</p><h1>DNS setup</h1><p>Aha, free sites</p><h2>DOT.TK</h2><p>Get my domain pickfire.tk here</p><h2>NSD DNS server</h2><p>I use nsd authoritative-only dns server in conjunction with dnsmasq.
+(Not applicable anymore after switching to cloudflare DNS)</p><p><a href="https://www.digitalocean.com/community/tutorials/how-to-use-nsd-an-authoritative-only-dns-server-on-ubuntu-14-04">https://www.digitalocean.com/community/tutorials/how-to-use-nsd-an-authoritative-only-dns-server-on-ubuntu-14-04</a></p><h2>Zone file</h2><p>In <code>/etc/nsd/pickfire.tk.zone</code>.</p><pre><code>$ORIGIN pickfire.tk.
+$TTL 300
+
+; Start of authority (required)
+@       IN      SOA     pickfire.tk.    noone.pickfire.tk. (
+                2016071701      ; Serial
+                300             ; refresh
+                300             ; retry
+                2W              ; expire
+                1D              ; minimum TTL
+                )
+
+; Name servers
+        IN      NS      ali.ns.cloudflare.com
+        IN      NS      theo.ns.cloudflare.com
+        IN      NS      ns101.cloudns.net.
+        IN      NS      ns102.cloudns.net.
+;       IN      NS      pickfire.epac.to.
+;       IN      NS      vince.ddns.info.
+;       IN      NS      pickfire.dynamic-dns.net.
+;       IN      NS      pickfire.longmusic.com.
+;       IN      NS      pickfire.compress.to.
+
+; A records for name servers
+;vince.ddns.info.       IN      A       210.195.229.205
+;pickfire.epac.to.      IN      A       210.195.229.205
+
+; Resource records
+@       IN      A       210.195.229.205
+www     IN      A       210.195.229.205
+</code></pre><h2>Backup DNS</h2><p>Cloudflare DNS-only with the following dns update script.</p><pre><code>curl -s -X GET &quot;https://api.cloudflare.com/client/v4/zones/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/dns_records&quot; \
+  -H &quot;X-Auth-Email: pickfire@riseup.net&quot; \
+  -H &quot;X-Auth-Key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  | jq -r &quot;.result[] | select(.type == \&quot;A\&quot;) | @sh \&quot;curl -s -w '\n' -X PUT https://api.cloudflare.com/client/v4/zones/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/dns_records/\(.id) -H 'X-Auth-Email: pickfire@riseup.net' -H 'X-Auth-Key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' -H 'Content-Type: application/json' -d '\&quot; + ({type: \&quot;A\&quot;, name: .name, content: \&quot;$IP\&quot;} | tostring) + \&quot;'\&quot;&quot; \
+  | xargs -0 sh -c
+</code></pre><h2>Iptables</h2><p>Search Arch wiki for the following.</p><ul><li>sshguard</li><li>filter incoming</li><li>drop ping request</li></ul><h3>Open DNS</h3><p>Using this setup, people could just spoof udp request and use the server as a
+bot to ddos other servers. To solve this fast, I did this myself without my
+father's help (slow), so I did add an iptables rule. external:53 -&gt; internal:5353</p><pre><code>iptables -t nat -A PREROUTING -s 192.168.1.0/24 -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1:5353
+</code></pre><h1>Dynamic DNS service (old setup)</h1><p>I personally used changeip.com after signing up for a few dns service.</p><h2>Port forwarding</h2><p>I am not sure about this. Go ask my father.</p><h1>Tor Hidden Service</h1><p>Why? Firewall isn't Tor-proof, prevent censorship and support a better privacy.</p><h2>Setup Tor hidden service</h2><p>Edit <code>/etc/tor/torrc</code>, private keys in <code>/srv/tor</code> for Alpine <em>data-mode</em>.</p><pre><code>DNSPort 9053
+
+HiddenServiceDir /srv/tor/web/
+HiddenServicePort 80 127.0.0.1:80
+HiddenServicePort 9418 127.0.0.1:9418
+</code></pre></main><footer><span class="right"><a rel="license" href="http://creativecommons.org/licenses/by/4.0/">CC-BY</a>&ensp;<a href="/about/contact.html">Ivan Tham</a><link rel="stylesheet" href="/tor.css">

@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><title>Moving Fire on the Go! - ABRACADABRA</title><meta charset="utf-8"><meta name="description" content="Pickfire's happy website by itself"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/pub/style.css"><link href=/posts/craft/atom.xml type=application/atom+xml rel=alternate title="Pickfire craft ATOM Feed"><header><a id="fire" href="/">Site </a><span><strong>Posts</strong><span id=info> - <em>Embrace the Unknown</em></span></span></header><menu><span class="left"><a href=/about/>About</a><a href=/links/>Links</a><a href=/posts/ id='here'>Posts</a></span><span class="right"><a id="tor" href="http://pickfireywcq2wf2.onion/">Tor</a></span></menu><nav><ul><li><a href="/posts/craft/" class=site>Craft/</a><ul><li><a href="/posts/craft/fire.html" class=site>Fire</a></li><li><a href="/posts/craft/fisher.html">Fisher</a></li></ul></li><li><a href="/posts/learn/">Learn/</a></li><li><a href="/posts/linux/">Linux/</a></li></ul></nav><main><h1>Moving Fire on the Go! - ABRACADABRA</h1><h2>Pixel Art</h2><p><img src="/pub/fire.png" alt="fire" /></p><p>Some time after I created that unpleasant fire, I make up my mind to create a
+better fire (pixel art) that move (partly inspired by an dancing banana image).
+I plan to use <a href="//aseprite.org">aseprite</a>.</p><h3>Drawing</h3><p>Draw two image (32x32px each, skip to the <strong>Fixing</strong> to read more about what I
+did wrongly) side-by-side to set an alternative image.</p><h3>Animate</h3><p>Use <code>tab</code> to open the timeline and press <code>Alt + n</code> to create a new frame. Try
+to rotate some part and modify it to make it looks like it is moving.</p><p><img src="img/fire2.png" alt="img" /></p><h3>Enlarge</h3><p>To enlarge the image, I use <code>imagemagick</code>. Note interesting fork that is fast,
+<code>graphicsmagick</code> where everything is prefixed with <code>gm</code>.</p><pre><code>convert input.gif -scale 125% output.gif
+</code></pre><p><strong>Note: as a side effect, the fire seems to shake. Nice one <a href="//max-p.me">@Max-P</a></strong></p><h4>Fixing</h4><p>Later on, I figured out not to manually enlarge it but to enlarge the canvas
+size by 8px (40px now) and redraw everything.</p><p><img src="img/fire1.png" alt="img" /></p><h3>Inverts</h3><p>After drawing it, I plan to create another image that have blue flame instead
+of red flame by extending the canvas size by another 40px horizontally.</p><ol><li>Use <code>Rectangular Marquee Tool</code> or press <code>m</code> and select the red flame.</li><li><code>Ctrl + click</code> and paste the image next to it.</li><li>In <code>Edit -&gt; Invert</code>, ignore green component and apply to all cell in the
+sprite.</li></ol><p><img src="img/fire3.png" alt="img" /></p><h3>Outputs</h3><p><img src="/pub/fire.gif" alt="afire" /></p><h3>Integrate</h3><p>Add <code>&lt;a id=fire href=&quot;/&quot;&gt;</code> to <code>index.html</code>. Modify <code>style.css</code>:</p><pre><code>#fire {
+	display: inline-block;
+	width: 40px; height: 40px;
+	background: url(/img/fire.gif);
+}
+#fire:hover     { background-position:-40px 0; }
+#fire:active	{ background-position:-80px 0; }
+</code></pre><p>This move the background to another position when it is during hover or active.</p><h3>Optimize</h3><p>The biggest loser of file size is done by hand, I choose to least colors needed
+to color the fire (tough choice), normalizing the colors. At last, I reduce the
+color palette from ~30 to 7 with the file size reduced by at least by 40% IIRC.</p><p>Rather than separating two different color on a separate position. We can make
+use of <code>filter</code> property in CSS to do color invert to reduce file size by ~20%.
+Later, I then remove the separate blue block from each frame and have use this:</p><pre><code>#fire {
+	display: inline-block;
+	margin: 0 5px 5px 0;
+	width: 40px; height: 40px;
+	text-indent: -9em;
+	background-image: url(/pub/fire.gif);
+}
+#fire:hover		{ background-position:-40px 0; }
+#fire:active	{ filter: hue-rotate(90deg); }
+</code></pre><p>In addition, use <code>gifsicle</code> and try out option <code>-O</code> and <code>k</code> to shrink it more.</p></main><footer><span class="right"><a rel="license" href="http://creativecommons.org/licenses/by/4.0/">CC-BY</a>&ensp;<a href="/about/contact.html">Ivan Tham</a><link rel="stylesheet" href="/tor.css">
