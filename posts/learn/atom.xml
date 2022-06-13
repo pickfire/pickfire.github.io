@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Pickfire learn</title><link href="pickfire.tk/learn"/><updated>2022-11-29T16:03:31Z</updated><author><name>Ivan Tham</name><email>pickfire@riseup.net</email></author><id>http://pickfire.tk/posts/learn/atom.xml</id><link href="pickfire.tk/posts/learn/atom.xml"/><entry><title>Let's break the time barrier</title><link href="http://pickfire.tk/posts/learn/speed"/><updated>2020-05-23T13:21:34Z</updated><content type="html"><![CDATA[<h1>Let's break the time barrier</h1><p>Practise simple task that can help you to improve your daily performance.
+Always remember:</p><blockquote><p>Practice makes perfect!</p></blockquote><h1>Time tracking</h1><p>Pomodoro Timer™, https://github.com/pickfire/spt</p><h1>Ambidextrous</h1><h5><strong>Note: This method that I am using won't work for chinese characters</strong></h5><p>One hand for (what rhymes with performance), two hands for performance.
+Writing with two hands can have huge performance gain, just make sure you
+practise it once in a while.</p><ol><li>Lines, geometry</li><li>Mirror</li><li>Duplicate</li><li>Rhythm</li><li>Speed</li></ol><h4>Touch Typing (Easy Job)</h4><p>Learn to type with all fingers that you have without looking, that's how the
+keyboard is designed.</p><h1>Meditate</h1><p>Refresh your mind and purify your soul. Do only (and nothing else):</p><ol><li>Breathe</li><li>Breathe</li><li>Breathe</li></ol><p>A simple technique, do count from 10 to 1 and recount from 10 to 1.
+A harder technique, do visualise yourself in a white dimension, safe and sound.</p><h1>Rapid Reading</h1><p>How to get from reading 200 words per minute to 500+ words per minutes</p><ul><li>Reduce distraction, it is better to close your ears when you read</li><li>Move your eyes slowly, if you can't use your finger as a pointer</li><li>Avoid sub-vocalization
+<ul><li>do not <code>see -&gt; hear -&gt; understand</code></li><li>instead <code>see -&gt; understand</code></li></ul></li><li>Avoid regression - don't read the word &quot;Avoid regression&quot; again</li><li>Read words in chunk, eg. &quot;read all of these words in chunk&quot;</li></ul><h1>Day of Week</h1><p>Calculate the day of week (星期) using three fingers.</p><pre><code>---
+   )
+--------------
+  一 | 二 | 三 )
+---------------
+   四 | 五 | 六 )
+---------------
+    |   | 日 )
+-------------
+    |   |   )        -&gt; Forward Direction
+------------
+</code></pre><!-- raw HTML omitted --><!-- raw HTML omitted --><p>I will normally point my thumb to the part of the day of the week and do calculations:</p><!-- raw HTML omitted -->]]></content></entry><entry><title>Setting up this site for free</title><link href="http://pickfire.tk/posts/learn/site"/><updated>2018-05-29T05:03:52Z</updated><content type="html"><![CDATA[<h1>Setting up this site for free</h1><p>In the process of creating this site with an abnormal way (using ddns), most
+people had told me to give up and go buy a domain, I refuse. And now, here am
+I.</p><blockquote><p>First they ignore you, then they laugh at you, then they fight you, then you
+win.  -- Mahatma Gandhi</p></blockquote><p><strong>Warning: Always believe in yourselves and never give up during the process.</strong></p><blockquote><p>Patience and diligence, like faith, remove mountains.  -- Willian Penn</p></blockquote><h1>HTTP Setup</h1><h2>Build website</h2><p>Clone the [website source][src] in <code>/srv/www/pickfire.tk/</code>.
+Run <code>make</code> with the following <code>config.sh</code>.</p><pre><code>PROT=http://
+TARG=/srv/http/pickfire.tk
+HOST=pickfire.tk
+#TARG=/srv/http/pickfireywcq2wf2.onion  # build with this as well for tor
+#HOST=pickfireywcq2wf2.onion
+</code></pre><h2>Setup httpd</h2><p>Install <code>h2o</code>.</p><p>Base website with virtual host and tor support.</p><pre><code>hosts:
+  &quot;pickfire.tk:80&quot;: &amp;www
+    listen: 80
+    paths: &amp;www_paths
+      /:
+        file.dir: /srv/http/pickfire.tk
+        file.send-compressed: ON
+        access-log: /var/log/h2o/www.log
+      /tor:
+        fastcgi.spawn: &quot;exec /srv/tor/check/check.cgi&quot;
+        access-log: /var/log/h2o/tor.log
+      /status: &amp;default_status
+        mruby.handler: |
+          acl {
+            allow { addr == &quot;192.168.1.100&quot; }
+            respond(404, {}, [&quot;not found&quot;])
+          }
+        status: ON
+        access-log: /var/log/h2o/status.log
+  &quot;pickfireywcq2wf2.onion:80&quot;:
+    &lt;&lt;: *www
+    paths:
+      &lt;&lt;: *www_paths
+      /:
+        file.dir: /srv/http/pickfireywcq2wf2.onion
+        file.send-compressed: ON
+  &quot;pickfire.tk:443&quot;:
+    listen:
+      port: 443
+      ssl: &amp;default_ssl
+        minimum-version: TLSv1.2
+        cipher-suite: ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
+        certificate-file: /srv/www/acme.sh/pickfire.tk/fullchain.cer
+        key-file: /srv/www/acme.sh/pickfire.tk/pickfire.tk.key
+    header.set: &quot;Strict-Transport-Security: max-age=15768000; includeSubDomains&quot;
+    paths: *www_paths
+</code></pre><p>Use <a href="http://acme.sh">acme.sh</a> as Let's Encrypt client (minimal client for posix shell).</p><pre><code>git clone https://github.com/Neilpang/acme.sh.git
+cd acme.sh
+./acme.sh --install --home /srv/www/acme.sh
+</code></pre><p>Setup certs:</p><pre><code>. /srv/www/acme.sh/acme.sh.env
+acme.sh --issue -d pickfire.tk -d www.pickfire.tk -w /srv/http/pickfire.tk
+</code></pre><p>For cgit (this took me a while to figure it out):</p><pre><code>&quot;git.pickfire.tk:80&quot;: &amp;git
+  listen: 80
+  paths: &amp;git_paths
+    /cgit.css:
+      file.file: /srv/git/cgit.css
+      file.send-compressed: ON
+    /favicon.ico: &amp;default_ico
+      file.file: /srv/www/pickfire.tk/favicon.ico
+      file.send-compressed: ON
+    /:
+      fastcgi.spawn: &quot;exec $H2O_ROOT/share/h2o/fastcgi-cgi&quot;
+      setenv:
+        SCRIPT_FILENAME: /srv/git/cgit.cgi
+      compress: ON
+      access-log: /var/log/h2o/git.log
+    /status: *default_status
+</code></pre><p>For files with auto index:</p><pre><code>&quot;dl.pickfire.tk:80&quot;: &amp;dl
+  listen: 80
+  paths: &amp;dl_paths
+    /:
+      file.dir: &quot;/srv/ftp&quot;
+      file.dirlisting: ON
+      compress: ON
+      access-log: /var/log/h2o/dl.log
+    /favicon.ico: *default_ico
+    /status: *default_status
+</code></pre><h2>Setup cgit</h2><p>Install <code>cgit</code>, <code>fcgiwrap</code> (now used the one in <code>h2o</code>).</p><h2>Setup git daemon</h2><p>Install <code>git-daemon</code>.</p><ul><li>Run with <code>--base-path /srv/git</code> for git directory.</li><li>Run without <code>--export-all</code> to prevent auto-export.</li></ul><h2>Bare repository</h2><p>Do <code>git clone --bare</code> for the files.</p><p>Owner of git repository is appended to <code>repo/config</code>.</p><pre><code>[gitweb]
+	owner = Ivan Tham &lt;pickfire@riseup.net&gt;
+</code></pre><p>Project description in <code>repo/description</code>.</p><h1>DNS setup</h1><p>Aha, free sites</p><h2>DOT.TK</h2><p>Get my domain pickfire.tk here</p><h2>NSD DNS server</h2><p>I use nsd authoritative-only dns server in conjunction with dnsmasq.
+(Not applicable anymore after switching to cloudflare DNS)</p><p><a href="https://www.digitalocean.com/community/tutorials/how-to-use-nsd-an-authoritative-only-dns-server-on-ubuntu-14-04">https://www.digitalocean.com/community/tutorials/how-to-use-nsd-an-authoritative-only-dns-server-on-ubuntu-14-04</a></p><h2>Zone file</h2><p>In <code>/etc/nsd/pickfire.tk.zone</code>.</p><pre><code>$ORIGIN pickfire.tk.
+$TTL 300
+
+; Start of authority (required)
+@       IN      SOA     pickfire.tk.    noone.pickfire.tk. (
+                2016071701      ; Serial
+                300             ; refresh
+                300             ; retry
+                2W              ; expire
+                1D              ; minimum TTL
+                )
+
+; Name servers
+        IN      NS      ali.ns.cloudflare.com
+        IN      NS      theo.ns.cloudflare.com
+        IN      NS      ns101.cloudns.net.
+        IN      NS      ns102.cloudns.net.
+;       IN      NS      pickfire.epac.to.
+;       IN      NS      vince.ddns.info.
+;       IN      NS      pickfire.dynamic-dns.net.
+;       IN      NS      pickfire.longmusic.com.
+;       IN      NS      pickfire.compress.to.
+
+; A records for name servers
+;vince.ddns.info.       IN      A       210.195.229.205
+;pickfire.epac.to.      IN      A       210.195.229.205
+
+; Resource records
+@       IN      A       210.195.229.205
+www     IN      A       210.195.229.205
+</code></pre><h2>Backup DNS</h2><p>Cloudflare DNS-only with the following dns update script.</p><pre><code>curl -s -X GET &quot;https://api.cloudflare.com/client/v4/zones/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/dns_records&quot; \
+  -H &quot;X-Auth-Email: pickfire@riseup.net&quot; \
+  -H &quot;X-Auth-Key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  | jq -r &quot;.result[] | select(.type == \&quot;A\&quot;) | @sh \&quot;curl -s -w '\n' -X PUT https://api.cloudflare.com/client/v4/zones/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/dns_records/\(.id) -H 'X-Auth-Email: pickfire@riseup.net' -H 'X-Auth-Key: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' -H 'Content-Type: application/json' -d '\&quot; + ({type: \&quot;A\&quot;, name: .name, content: \&quot;$IP\&quot;} | tostring) + \&quot;'\&quot;&quot; \
+  | xargs -0 sh -c
+</code></pre><h2>Iptables</h2><p>Search Arch wiki for the following.</p><ul><li>sshguard</li><li>filter incoming</li><li>drop ping request</li></ul><h3>Open DNS</h3><p>Using this setup, people could just spoof udp request and use the server as a
+bot to ddos other servers. To solve this fast, I did this myself without my
+father's help (slow), so I did add an iptables rule. external:53 -&gt; internal:5353</p><pre><code>iptables -t nat -A PREROUTING -s 192.168.1.0/24 -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1:5353
+</code></pre><h1>Dynamic DNS service (old setup)</h1><p>I personally used changeip.com after signing up for a few dns service.</p><h2>Port forwarding</h2><p>I am not sure about this. Go ask my father.</p><h1>Tor Hidden Service</h1><p>Why? Firewall isn't Tor-proof, prevent censorship and support a better privacy.</p><h2>Setup Tor hidden service</h2><p>Edit <code>/etc/tor/torrc</code>, private keys in <code>/srv/tor</code> for Alpine <em>data-mode</em>.</p><pre><code>DNSPort 9053
+
+HiddenServiceDir /srv/tor/web/
+HiddenServicePort 80 127.0.0.1:80
+HiddenServicePort 9418 127.0.0.1:9418
+</code></pre>]]></content></entry><entry><title>Privacy Die Hard!</title><link href="http://pickfire.tk/posts/learn/privacy"/><updated>2018-04-06T16:45:16Z</updated><content type="html"><![CDATA[<h1>Privacy Die Hard!</h1><blockquote><p>Arguing that you don't care about the right to privacy because you have
+nothing to hide is no different than saying you don't care about free speech
+because you have nothing to say.  ── Edward Snowden</p></blockquote><p>Why care about privacy? Think, why do we have door locks for bathroom.</p><p>Isn't the web secure? No, someone might be spying on you, you will never know
+who is the man in the middle, he might be a hacker, a robber or even a (what
+rhymes with hacker or robber). Who knows?</p><h1>Use Tor</h1><h2>Tor + Privoxy</h2><p>I used this, working so bad so far, always pops out downloads in surf. Hopes
+Polipo can filter which to site that is needed to be proxied.</p><h2>Tor + Polipo (old)</h2><p>I had dump Polipo since it must proxy everything to Tor. Setup Tor and Polipo.</p><h2>Filter useless ads</h2><p>/etc/polipo/forbidden with links from</p><h2>TorDNS + dnsmasq (cache)</h2><p>slow</p><h1>Use Encryption</h1><h2>Pretty Good Privacy (PGP)</h2><p>GPG</p><h3>Mutt</h3><p>Mutt build-in GPG support, require GPGME</p><h2>Block-based Encryption</h2><p>dm-crypt + LUKS</p><h2>File-based Encryption</h2><p>EncFS</p><h2>Use encrypted connection</h2><p>If possible use, encrypted connection such as HTTPS, SMTPS, IMAPS. Analyze with
+<code>tshark</code> or <code>tcpdump</code>.</p><h2>Don't delete, shred files instead</h2><pre><code>shred -xu
+</code></pre><h1>Misc</h1><h2>ROT13</h2><pre><code>tr 'A-Za-z' 'N-ZA-Mn-za-m'
+</code></pre><h2>Pen and Paper</h2><p>I forgot the link (video).</p><h2>Random Passphrase</h2><p>xkcd image</p><p>To easily generate a random passphrase using command line:</p><pre><code>aspell dump master | grep -v &quot;'&quot; | shuf -n 4 | tr '\n' ' '
+</code></pre><p>What I did before this? I look it up online
+<a href="https://duckduckgo.com/?q=random+passphrase">https://duckduckgo.com/?q=random+passphrase</a>.</p>]]></content></entry><entry><title>Don't rely on others for an email</title><link href="http://pickfire.tk/posts/learn/mail"/><updated>2017-02-21T17:06:51Z</updated><content type="html"><![CDATA[<h1>Don't rely on others for an email</h1><p>Still getting my mail server to work</p><p>Among everything that I had setup, this is the hardest.
+I cannot guarantee the mail server is safe, use it at your own risk.</p><h2>MX records</h2><p>Point MX record to</p><h2>smtp server</h2><p>postfix</p><h2>imap server</h2><p>dovecot</p><h2>spam filter bot</h2><p>train bogofilter</p>]]></content></entry></feed>
